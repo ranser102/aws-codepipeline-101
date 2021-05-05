@@ -1,0 +1,32 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >
+  Cloudformation template to provision AWS codepipeline
+
+Metadata:
+  AWS codepipleine
+
+Parameters:
+  GitUrl:
+    Type: String
+    Default: https://github.com
+    Description: Enter your public github repository url
+
+Resources:
+  MyCodePipeline: 
+    Type: "AWS::EC2::Instance"
+    Properties: 
+      UserData: 
+        "Fn::Base64":
+          !Sub |
+            Queue=${MyQueue}
+      AvailabilityZone: "us-east-1a"
+      ImageId: "ami-0ff8a91507f77f867"
+
+  CodePipelineServiceRoleQueue: 
+    Type: "AWS::IAM::Role"
+    Properties: {}
+
+Outputs:
+  set of outputs
