@@ -7,26 +7,84 @@ Description: >
 Metadata:
   AWS codepipleine
 
-Parameters:
-  GitUrl:
-    Type: String
-    Default: https://github.com
-    Description: Enter your public github repository url
-
 Resources:
   MyCodePipeline: 
-    Type: "AWS::EC2::Instance"
+    Type: 'AWS::CodePipeline::Pipeline'
     Properties: 
-      UserData: 
-        "Fn::Base64":
-          !Sub |
-            Queue=${MyQueue}
-      AvailabilityZone: "us-east-1a"
-      ImageId: "ami-0ff8a91507f77f867"
+      Name: my-first-codepipeline
+      RoleArn: !Ref MyCodePipelineServiceRole
+      Stages:
 
-  CodePipelineServiceRoleQueue: 
-    Type: "AWS::IAM::Role"
+        - Name: MySourceStage
+          Actions: 
+          - RunOrder: 1
+            OutputArtifacts:
+              - Name: S3SourceArtifact
+            ActionTypeId:
+              Provider: S3
+              Owner: AWS
+              Version: '1'
+              Category: Source
+            Region: us-east-1
+            Name: S3SourceAction
+            Configuration:
+              S3Bucket: my-bucket-source  ### prereq
+              S3ObjectKey: my-application.zip  ### prereq
+            InputArtifacts: []
+
+          Name: MyBuildStage
+          Actions:
+            - Name: BuildAction
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              RunOrder: 1
+              Configuration:
+                ProjectName: !Ref my-build-project
+                PrimarySource: MyApplicationSource1
+              OutputArtifacts:
+                - Name: MyPipeline-BuildArtifact
+              InputArtifacts:
+                - Name: S3SourceArtifact
+
+          Name: MyApprovalStage
+          Actions:
+            - Name: ApprovalAction
+              ActionTypeId: 
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: 1
+  
+          Name: MyDeployStage
+          Actions:
+            - Name: ExecuteChangeSet
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: '1'
+              RunOrder: 1
+              Configuration:
+                ActionMode: CHANGE_SET_EXECUTE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                ChangeSetName: pipeline-changeset
+                RoleArn: CloudFormation_Role_ARN
+                StackName: my-project--lambda
+                TemplateConfiguration: 'MyPipeline-BuildArtifact::template-configuration.json'
+                TemplatePath: 'MyPipeline-BuildArtifact::template-export.yml'
+              OutputArtifacts: []
+              InputArtifacts:
+                - Name: MyPipeline-BuildArtifact  
+
+  MyCodePipelineServiceRole: 
+    Type: 'AWS::IAM::Role'
     Properties: {}
+
+  my-build-project:
+    Type: 'AWS::CodeBuild::Project'
 
 Outputs:
   set of outputs
