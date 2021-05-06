@@ -4,9 +4,6 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: >
   Cloudformation template to provision AWS codepipeline
 
-Metadata:
-  AWS codepipleine
-
 Parameters:
   SourceCodeBucket:
     Description: The S3 bucket name that contain the source code
@@ -34,7 +31,7 @@ Resources:
             Region: us-east-1
             Name: S3SourceAction
             Configuration:
-              S3Bucket: !Ref SourceCodeBucket  ### Created by prepare.sh
+              S3Bucket: !Sub ${SourceCodeBucket}  ### Created by prepare.sh
               S3ObjectKey: learning-circle-app.zip  ### Created by prepare.sh
             InputArtifacts: []
 
@@ -131,11 +128,11 @@ Resources:
   CodePipelinePolicy:
     Type: 'AWS::IAM::ManagedPolicy'
     Properties:
-      ManagedPolicyName: 'delegate-admin-gitlab-codepipeline-pipeline-policy'
+      ManagedPolicyName: 'delegate-admin-codepipeline-pipeline-policy'
       Description: Policy with base permissions for CodePipeline
       Path: /
       Roles:
-        - !Ref PipelineRole
+        - !Ref MyCodePipelineServiceRole
       PolicyDocument:
         Statement:
         - Effect: Allow
@@ -147,8 +144,8 @@ Resources:
             - "s3:GetBucketAcl"
             - "s3:GetBucketLocation"
           Resource:
-            - !GetAtt SourceCodeBucket.Arn
-            - !Sub "${SourceCodeBucket.Arn}/*"
+            - !Sub 'arn:aws:s3:::${SourceCodeBucket}'
+            - !Sub 'arn:aws:s3:::${SourceCodeBucket}/*'
         - Action:
             - 'iam:PassRole'
           Resource: '*'
@@ -188,6 +185,7 @@ Resources:
         ManagedPolicyArns:
           - !Ref CodeBuildEndpointPolicy
           - !Ref CodeBuildBasePolicy
+          - !Ref CodeBuildPolicy          
 
   CodeBuildEndpointPolicy:
     Type: 'AWS::IAM::ManagedPolicy'
@@ -261,8 +259,8 @@ Resources:
               - "s3:GetBucketAcl"
               - "s3:GetBucketLocation"
             Resource:
-              - !GetAtt SourceCodeBucket.Arn
-              - !Sub "${SourceCodeBucket.Arn}/*"
+              - !Sub 'arn:aws:s3:::${SourceCodeBucket}'
+              - !Sub 'arn:aws:s3:::${SourceCodeBucket}/*'
           - Effect: Allow
             Action:
               - "logs:CreateLogGroup"
@@ -270,6 +268,58 @@ Resources:
               - "logs:CreateLogStream"
             Resource:
               - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+          - Action:
+              - 'codebuild:*'
+            Resource: '*'
+            Effect: Allow
+
+  CodeBuildPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      ManagedPolicyName: 'delegate-admin-gitlab-codepipeline-build-policy'
+      Description: Policy with base permissions for CodeBuild
+      Path: /
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "logs:CreateLogGroup"
+              - "logs:PutLogEvents"
+              - "logs:CreateLogStream"
+            Resource:
+              - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+          - Effect: Allow
+            Action:
+              - 's3:GetObject'
+              - 's3:GetObjectVersion'
+              - 's3:GetBucketVersioning'
+              - 's3:PutObject'
+              - "s3:GetBucketAcl"
+              - "s3:GetBucketLocation"
+            Resource:
+              - !GetAtt ArtifactStoreBucket.Arn
+              - !Sub "${ArtifactStoreBucket.Arn}/*"
+          - Effect: Allow
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/gitlab-codepipeline-cmk"
+          - Effect: Allow  #For allowing CodeBuild to Access Secrets Manager to retrieve Private SSH key. If a custom KMS key is used, please add the ARN in the Resource section
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/secretsmanager"
+          - Action:
+              - 'codebuild:*'
+            Resource: '*'
+            Effect: Allow
 
                 
 
