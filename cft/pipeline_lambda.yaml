@@ -173,8 +173,8 @@ Resources:
               - Effect: Allow
                 Action:
                   - s3:PutObject
-                Resource:
-                  - !Sub ${SourceCodeBucket}/*
+                Resource:    
+                  - Fn::Sub: arn:aws:s3:::${SourceCodeBucket}/*  #arn:aws:s3:::learning-circle-source-code/*
               - Effect: Allow
                 Action:
                   - lambda:*
