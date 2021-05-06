@@ -125,8 +125,7 @@ Resources:
                 - cd aws-lambda-101/HelloWorldFunction ; pwd ; ls -alrt
                 - mvn -ntp package
                 - pwd ; ls -alrt; ls -alrt target/
-                - cd ../ ; pwd ; ls -alrt;
-                - sam package --template-file template.yaml --s3-bucket learning-circle-source-code --s3-prefix LearningCircleApp --output-template-file packaged.yml
+                - sam package --template-file ../template.yaml --s3-bucket learning-circle-source-code --s3-prefix LearningCircleApp --output-template-file packaged.yml
                 - pwd ; ls -alrt;
                 - cp packaged.yml $CODEBUILD_SRC_DIR
                 - cd ../ ; pwd ; ls -alrt;
