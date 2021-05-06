@@ -1,0 +1,179 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Use AWS CodePipeline IAM resources"
+
+Resources:
+
+  CodeBuildServiceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+        PermissionsBoundary: !Sub 'arn:aws:iam::${AWS::AccountId}:policy/cft-developer-boundary-policy'
+        RoleName: delegate-admin-codebuild-role-lc
+        MaxSessionDuration: 3600
+        Description: 'Allows CodeBuild to call AWS services on your behalf.'
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: "Allow"
+            Principal:
+                Service: "codebuild.amazonaws.com"
+            Action:
+                - "sts:AssumeRole"
+        Path: "/"
+        ManagedPolicyArns:
+          - !Ref CodeBuildEndpointPolicy
+          - !Ref CodeBuildBasePolicy
+          - !Ref CodeBuildPolicy
+
+  CodeBuildEndpointPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+        Description: Policy with permissions for codebuild to work with endpoints
+        ManagedPolicyName: 'delegate-admin-code-build-endpoint-policy-lc'
+        Path: /
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                  - 'ec2:CreateNetworkInterface'
+                  - 'ec2:DescribeDhcpOptions'
+                  - 'ec2:DescribeNetworkInterfaces'
+                  - 'ec2:DeleteNetworkInterface'
+                  - 'ec2:DescribeSubnets'
+                  - 'ec2:DescribeSecurityGroups'
+                  - 'ec2:DescribeVpcs'
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                  - 'ec2:CreateNetworkInterfacePermission'
+              Resource: !Sub 'arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*'
+              Condition:
+                StringEquals: {"ec2:AuthorizedService": "codebuild.amazonaws.com"}
+
+  CodeBuildBasePolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+        Description: Policy with base permissions for CodeBuild
+        ManagedPolicyName: 'delegate-admin-code-build-base-policy-lc'
+        Path: /
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: "Allow"
+            Action:
+                - "logs:CreateLogGroup"
+                - "logs:PutLogEvents"
+                - "logs:CreateLogStream"
+            Resource:
+                - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+          - Effect: Allow  #For allowing CodeBuild to Access Secrets Manager to retrieve Private SSH key. If a custom KMS key is used, please add the ARN in the Resource section
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/secretsmanager"
+          - Effect: Allow
+            Action:
+              - 'secretsmanager:GetSecretValue'
+            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*"
+          - Effect: Allow
+            Action:
+            - 'ssm:GetParameters'
+            - 'ssm:GetParameter'
+            Resource : '*'
+          - Effect: Allow
+            Action:
+            - 'cloudformation:ValidateTemplate'
+            Resource : '*'
+
+  CodeBuildPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      ManagedPolicyName: 'delegate-admin-codepipeline-build-policy-lc'
+      Description: Policy with base permissions for CodeBuild
+      Path: /
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "logs:CreateLogGroup"
+              - "logs:PutLogEvents"
+              - "logs:CreateLogStream"
+            Resource:
+              - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+          - Effect: Allow
+            Action:
+              - 's3:GetObject'
+              - 's3:GetObjectVersion'
+              - 's3:GetBucketVersioning'
+              - 's3:PutObject'
+              - "s3:GetBucketAcl"
+              - "s3:GetBucketLocation"
+            Resource: '*'
+          - Effect: Allow  #For allowing CodeBuild to Access Secrets Manager to retrieve Private SSH key. If a custom KMS key is used, please add the ARN in the Resource section
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/secretsmanager"
+          - Action:
+              - 'codebuild:*'
+            Resource: '*'
+            Effect: Allow
+
+  PipelineRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      PermissionsBoundary: !Sub 'arn:aws:iam::${AWS::AccountId}:policy/cft-developer-boundary-policy'
+      RoleName: delegate-admin-codepipeline-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+
+  CodePipelinePolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      ManagedPolicyName: 'delegate-admin-codepipeline-pipeline-policy-lc'
+      Description: Policy with base permissions for CodePipeline
+      Path: /
+      Roles:
+        - !Ref PipelineRole
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Action:
+            - 's3:GetObject'
+            - 's3:GetObjectVersion'
+            - 's3:GetBucketVersioning'
+            - 's3:PutObject'
+            - "s3:GetBucketAcl"
+            - "s3:GetBucketLocation"
+          Resource: '*'
+        - Action:
+            - 'iam:PassRole'
+          Resource: '*'
+          Effect: Allow
+        - Action:
+            - 'codebuild:BatchGetBuilds'
+            - 'codebuild:StartBuild'
+          Resource: '*'
+          Effect: Allow
+        - Action:
+          - 'secretsmanager:GetSecretValue'
+          Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*"
+          Effect: Allow
+        - Action:
+          - 'cloudformation:*'
+          Effect: Allow
+          Resource: '*'
+        Version: 2012-10-17
