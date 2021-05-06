@@ -15,19 +15,19 @@ echo "ACCOUNT_ID=$AWS_ACCOUNT"
 aws s3 rm s3://${BUCKET_NAME} --recursive
 aws s3 rb s3://${BUCKET_NAME} --force
 
-## Delete pipeline stack:
-aws --region ${AWS_DEFAULT_REGION} cloudformation delete-stack \
-  --stack-name ${stackname}-${AWS_DEFAULT_REGION}
-
-aws --region ${AWS_DEFAULT_REGION} cloudformation wait stack-delete-complete \
-  --stack-name ${stackname}-${AWS_DEFAULT_REGION}
-
 ## Delete app stack:
 aws --region ${AWS_DEFAULT_REGION} cloudformation delete-stack \
   --stack-name ${app_stackname}
 
 aws --region ${AWS_DEFAULT_REGION} cloudformation wait stack-delete-complete \
   --stack-name ${app_stackname}
+
+## Delete pipeline stack:
+aws --region ${AWS_DEFAULT_REGION} cloudformation delete-stack \
+  --stack-name ${stackname}-${AWS_DEFAULT_REGION}
+
+aws --region ${AWS_DEFAULT_REGION} cloudformation wait stack-delete-complete \
+  --stack-name ${stackname}-${AWS_DEFAULT_REGION}
 
 ## Delete iam stack:
 aws cloudformation delete-stack --region ${AWS_DEFAULT_REGION} --stack-name ${iam_stackname}
