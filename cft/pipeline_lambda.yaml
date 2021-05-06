@@ -38,7 +38,7 @@ Resources:
               S3ObjectKey: learning-circle-app.zip  ### Created by prepare.sh
             InputArtifacts: []
 
-          Name: MyBuildStage
+        - Name: MyBuildStage
           Actions:
             - Name: BuildAction
               ActionTypeId:
@@ -55,7 +55,7 @@ Resources:
               InputArtifacts:
                 - Name: S3SourceArtifact
 
-          Name: MyApprovalStage
+        - Name: MyApprovalStage
           Actions:
             - Name: ApprovalAction
               ActionTypeId: 
@@ -64,7 +64,7 @@ Resources:
                 Provider: Manual
                 Version: 1
   
-          Name: MyDeployStage
+        - Name: MyDeployStage
           Actions:
             - Name: ExecuteChangeSet
               ActionTypeId:
