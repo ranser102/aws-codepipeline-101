@@ -26,6 +26,18 @@ function createCommonDependencies {
     echo
 }
 
+function codepipeline-iam {
+    aws cloudformation validate-template --template-body file://cft/codepipeline_codebuild_serviceroles.yaml
+    aws cloudformation delete-stack --region ${AWS_DEFAULT_REGION} --stack-name codepipeline-iam
+    aws cloudformation wait stack-delete-complete --region ${AWS_DEFAULT_REGION} --stack-name codepipeline-iam
+    aws cloudformation deploy \
+        --region ${AWS_DEFAULT_REGION} \
+        --stack-name codepipeline-iam \
+        --template-file cft/codepipeline_codebuild_serviceroles.yaml \
+        --capabilities CAPABILITY_NAMED_IAM \
+        --no-fail-on-empty-changeset
+}
+
 # Run the Central S3 bucket
 createCommonDependencies
 
@@ -39,3 +51,6 @@ zip -q -r9 learning-circle-app.zip aws-lambda-101/
 aws s3 cp learning-circle-app.zip s3://"$BUCKET_NAME"/
 
 rm -rf *.zip
+
+#codepipeline-iam
+
