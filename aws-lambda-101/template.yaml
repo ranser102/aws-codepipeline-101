@@ -18,6 +18,7 @@ Resources:
       Handler: helloworld.App::handleRequest
       Runtime: java8
       MemorySize: 512
+      Role: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/delegate-admin-lambda-lc-role"
       Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
         Variables:
           PARAM1: VALUE
@@ -38,6 +39,4 @@ Outputs:
   HelloWorldFunction:
     Description: "Hello World Lambda Function ARN"
     Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionIamRole:
-    Description: "Implicit IAM Role created for Hello World function"
-    Value: !GetAtt HelloWorldFunctionRole.Arn
+

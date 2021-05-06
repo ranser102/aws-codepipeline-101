@@ -80,8 +80,7 @@ Resources:
                 RoleArn: 
                   Fn::GetAtt: CloudFormationServiceRole.Arn
                 StackName: my-project-lambda
-                TemplateConfiguration: 'MyPipeline-BuildArtifact::template-configuration.json'
-                TemplatePath: 'MyPipeline-BuildArtifact::template-export.yml'
+                TemplatePath: 'MyPipelineBuildArtifact::packaged.yml'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: MyPipelineBuildArtifact  
@@ -107,9 +106,19 @@ Resources:
             build:
               commands:
                 - echo "=======================Start-Build============================="
+                - pwd ; ls -alrt
                 - cd aws-lambda-101/HelloWorldFunction
                 - pwd ; ls -alrt
+                - mvn package
+                - cd ../
+                - sam package --template-file template.yaml --s3-bucket learning-circle-source-code --s3-prefix LearningCircleApp --output-template-file packaged.yml
                 - echo "=======================End-Build============================="
+          artifacts:
+            files:
+            - aws-lambda-101/HelloWorldFunction/target/HelloWorld-1.0.jar
+            - packaged.yml
+
+
 
 ### IAM ###
 # Pipeline service-role and build service-role already exists in the account
@@ -231,7 +240,7 @@ Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub delegate-admin-lambda-lc-role
+      RoleName: delegate-admin-lambda-lc-role
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
