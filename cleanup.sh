@@ -20,3 +20,9 @@ aws --region ${AWS_DEFAULT_REGION} cloudformation delete-stack \
 
 aws --region ${AWS_DEFAULT_REGION} cloudformation wait stack-delete-complete \
   --stack-name ${stackname}-${AWS_DEFAULT_REGION}
+
+aws --region ${AWS_DEFAULT_REGION} cloudformation delete-stack \
+  --stack-name ${app_stackname}
+
+aws --region ${AWS_DEFAULT_REGION} cloudformation wait stack-delete-complete \
+  --stack-name ${app_stackname}
