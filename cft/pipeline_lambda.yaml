@@ -7,6 +7,12 @@ Description: >
 Metadata:
   AWS codepipleine
 
+Parameters:
+  SourceCodeBucket:
+    Description: The S3 bucket name that contain the source code
+    Type: String
+    Default: learning-circle-source-code
+
 Resources:
   MyCodePipeline: 
     Type: 'AWS::CodePipeline::Pipeline'
@@ -28,7 +34,7 @@ Resources:
             Region: us-east-1
             Name: S3SourceAction
             Configuration:
-              S3Bucket: learning-circle-source-code  ### Created by prepare.sh
+              S3Bucket: !Ref SourceCodeBucket  ### Created by prepare.sh
               S3ObjectKey: learning-circle-app.zip  ### Created by prepare.sh
             InputArtifacts: []
 
@@ -42,10 +48,10 @@ Resources:
                 Version: '1'
               RunOrder: 1
               Configuration:
-                ProjectName: !Ref my-build-project
+                ProjectName: !Ref MyBuildProject
                 PrimarySource: MyApplicationSource1
               OutputArtifacts:
-                - Name: MyPipeline-BuildArtifact
+                - Name: MyPipelineBuildArtifact
               InputArtifacts:
                 - Name: S3SourceArtifact
 
@@ -72,19 +78,201 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 ChangeSetName: pipeline-changeset
                 RoleArn: CloudFormation_Role_ARN
-                StackName: my-project--lambda
+                StackName: my-project-lambda
                 TemplateConfiguration: 'MyPipeline-BuildArtifact::template-configuration.json'
                 TemplatePath: 'MyPipeline-BuildArtifact::template-export.yml'
               OutputArtifacts: []
               InputArtifacts:
-                - Name: MyPipeline-BuildArtifact  
+                - Name: MyPipelineBuildArtifact  
 
-  MyCodePipelineServiceRole: 
-    Type: 'AWS::IAM::Role'
-    Properties: {}
-
-  my-build-project:
+  MyBuildProject:
     Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:5.0
+        Type: LINUX_CONTAINER
+      ServiceRole: !Sub 'arn:aws:iam::${AWS::AccountId}:role/delegate-admin-codebuild-role'
+      Source:
+        Type: NO_SOURCE
+        BuildSpec: |
+          version: 0.2
+          phases:
+            install:
+              runtime-versions:
+                java: corretto11
+            build:
+              commands:
+                - echo "=======================Start-Build============================="
+                - cd aws-lambda-101/HelloWorldFunction
+                - pwd ; ls -alrt
+                - echo "=======================End-Build============================="
 
-Outputs:
-  set of outputs
+### IAM ###
+# One pipeline service role and one build service role
+
+
+  MyCodePipelineServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      PermissionsBoundary: !Sub 'arn:aws:iam::${AWS::AccountId}:policy/cft-developer-boundary-policy'
+      RoleName: delegate-admin-codepipeline-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+
+  CodePipelinePolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      ManagedPolicyName: 'delegate-admin-gitlab-codepipeline-pipeline-policy'
+      Description: Policy with base permissions for CodePipeline
+      Path: /
+      Roles:
+        - !Ref PipelineRole
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Action:
+            - 's3:GetObject'
+            - 's3:GetObjectVersion'
+            - 's3:GetBucketVersioning'
+            - 's3:PutObject'
+            - "s3:GetBucketAcl"
+            - "s3:GetBucketLocation"
+          Resource:
+            - !GetAtt SourceCodeBucket.Arn
+            - !Sub "${SourceCodeBucket.Arn}/*"
+        - Action:
+            - 'iam:PassRole'
+          Resource: '*'
+          Effect: Allow
+        - Action:
+            - 'codebuild:BatchGetBuilds'
+            - 'codebuild:StartBuild'
+          Resource: '*'
+          Effect: Allow
+        - Action:
+          - 'secretsmanager:GetSecretValue'
+          Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*"
+          Effect: Allow
+        - Action:
+          - 'cloudformation:*'
+          Effect: Allow
+          Resource: '*'
+        Version: 2012-10-17
+
+
+  CodeBuildServiceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+        PermissionsBoundary: !Sub 'arn:aws:iam::${AWS::AccountId}:policy/cft-developer-boundary-policy'
+        RoleName: delegate-admin-codebuild-role
+        MaxSessionDuration: 3600
+        Description: 'Allows CodeBuild to call AWS services on your behalf.'
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: "Allow"
+            Principal:
+                Service: "codebuild.amazonaws.com"
+            Action:
+                - "sts:AssumeRole"
+        Path: "/"
+        ManagedPolicyArns:
+          - !Ref CodeBuildEndpointPolicy
+          - !Ref CodeBuildBasePolicy
+
+  CodeBuildEndpointPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+        Description: Policy with permissions for codebuild to work with endpoints
+        ManagedPolicyName: 'delegate-admin-code-build-endpoint-policy'
+        Path: /
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                  - 'ec2:CreateNetworkInterface'
+                  - 'ec2:DescribeDhcpOptions'
+                  - 'ec2:DescribeNetworkInterfaces'
+                  - 'ec2:DeleteNetworkInterface'
+                  - 'ec2:DescribeSubnets'
+                  - 'ec2:DescribeSecurityGroups'
+                  - 'ec2:DescribeVpcs'
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                  - 'ec2:CreateNetworkInterfacePermission'
+              Resource: !Sub 'arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*'
+              Condition:
+                StringEquals: {"ec2:AuthorizedService": "codebuild.amazonaws.com"}
+
+  CodeBuildBasePolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+        Description: Policy with base permissions for CodeBuild
+        ManagedPolicyName: 'delegate-admin-code-build-base-policy'
+        Path: /
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: "Allow"
+            Action:
+                - "logs:CreateLogGroup"
+                - "logs:PutLogEvents"
+                - "logs:CreateLogStream"
+            Resource:
+                - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+          - Effect: Allow  #For allowing CodeBuild to Access Secrets Manager to retrieve Private SSH key. If a custom KMS key is used, please add the ARN in the Resource section
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/secretsmanager"
+          - Effect: Allow
+            Action:
+              - 'secretsmanager:GetSecretValue'
+            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*"
+          - Effect: Allow
+            Action:
+            - 'ssm:GetParameters'
+            - 'ssm:GetParameter'
+            Resource : '*'
+          - Effect: Allow
+            Action:
+            - 'cloudformation:ValidateTemplate'
+            Resource : '*'
+          - Effect: Allow
+            Action:
+              - 's3:GetObject'
+              - 's3:GetObjectVersion'
+              - 's3:GetBucketVersioning'
+              - 's3:PutObject'
+              - "s3:GetBucketAcl"
+              - "s3:GetBucketLocation"
+            Resource:
+              - !GetAtt SourceCodeBucket.Arn
+              - !Sub "${SourceCodeBucket.Arn}/*"
+          - Effect: Allow
+            Action:
+              - "logs:CreateLogGroup"
+              - "logs:PutLogEvents"
+              - "logs:CreateLogStream"
+            Resource:
+              - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+
+                
+
+
+
+

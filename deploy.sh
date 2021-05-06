@@ -14,7 +14,7 @@ if ! aws cloudformation describe-stacks --stack-name ${stackname}-${AWS_DEFAULT_
    echo "stack does not exist, creating"
    aws --region ${AWS_DEFAULT_REGION} cloudformation deploy \
    --stack-name ${stackname}-${AWS_DEFAULT_REGION} \
-   --template-file cft/codepipeline_custom_source.yaml \
+   --template-file cft/pipeline_lambda.yaml \
    --capabilities CAPABILITY_NAMED_IAM \
    --no-fail-on-empty-changeset
 fi
