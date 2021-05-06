@@ -28,8 +28,6 @@ function createCommonDependencies {
 
 function codepipeline-iam {
     aws cloudformation validate-template --template-body file://cft/codepipeline_codebuild_serviceroles.yaml
-    aws cloudformation delete-stack --region ${AWS_DEFAULT_REGION} --stack-name codepipeline-iam
-    aws cloudformation wait stack-delete-complete --region ${AWS_DEFAULT_REGION} --stack-name codepipeline-iam
     aws cloudformation deploy \
         --region ${AWS_DEFAULT_REGION} \
         --stack-name codepipeline-iam \
