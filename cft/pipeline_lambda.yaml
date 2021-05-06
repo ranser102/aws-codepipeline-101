@@ -18,7 +18,7 @@ Resources:
       RoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/delegate-admin-codepipeline-role'
       ArtifactStore:
         Type: S3
-        Location: 'arn:aws:s3:::learning-circle-source-code'
+        Location: '${SourceCodeBucket}'
       Stages:
 
         - Name: MySourceStage
