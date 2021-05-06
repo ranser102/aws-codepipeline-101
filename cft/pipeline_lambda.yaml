@@ -74,7 +74,8 @@ Resources:
                 ActionMode: CHANGE_SET_EXECUTE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 ChangeSetName: pipeline-changeset
-                RoleArn: CloudFormation_Role_ARN
+                RoleArn: 
+                  Fn::GetAtt: CloudFormationServiceRole.Arn
                 StackName: my-project-lambda
                 TemplateConfiguration: 'MyPipeline-BuildArtifact::template-configuration.json'
                 TemplatePath: 'MyPipeline-BuildArtifact::template-export.yml'
@@ -108,7 +109,150 @@ Resources:
                 - echo "=======================End-Build============================="
 
 ### IAM ###
-# One pipeline service role and one build service role
+# Pipeline service-role and build service-role already exists in the account
+# Below are the cloudformation service-role and the lambda execution-role used to deploy the SAM app
+
+  CloudFormationServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: delegate-admin-cf-lc-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - !Sub arn:aws:iam::${AWS::AccountId}:policy/cft-developer-iam-access-policy
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+      PermissionsBoundary: !Sub arn:aws:iam::${AWS::AccountId}:policy/cft-developer-boundary-policy
+      Policies:
+        - PolicyName: CloudFormationPolicy-Inline
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketVersioning
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource:
+                  - Fn::Sub: arn:aws:s3:::gitlab-custom-source-artifactstore-${AWS::AccountId}/*
+              - Effect: Allow
+                Action:
+                  - lambda:*
+                Resource:
+                  - Fn::Sub: arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*
+              - Effect: Allow
+                Action:
+                  - lambda:GetEventSourceMapping
+                  - lambda:CreateEventSourceMapping
+                  - lambda:DeleteEventSourceMapping
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - apigateway:*
+                Resource:
+                  - Fn::Sub: arn:aws:apigateway:${AWS::Region}::*
+              - Effect: Allow
+                Action:
+                  - sns:*
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - sqs:*
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - iam:GetRole
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:PutRolePolicy
+                Resource:
+                  - Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/*
+              - Effect: Allow
+                Action:
+                  - iam:AttachRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:DetachRolePolicy
+                Resource:
+                  - Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/*
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                Resource:
+                  - Fn::Sub: arn:aws:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31
+                  - Fn::Sub: arn:aws:cloudformation:${AWS::Region}:aws:transform/Include
+              - Effect: Allow
+                Action:
+                  - codedeploy:CreateApplication
+                  - codedeploy:DeleteApplication
+                  - codedeploy:RegisterApplicationRevision
+                Resource:
+                  - Fn::Sub: arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:application:*
+              - Effect: Allow
+                Action:
+                  - codedeploy:CreateDeploymentGroup
+                  - codedeploy:CreateDeployment
+                  - codedeploy:GetDeployment
+                Resource:
+                  - Fn::Sub: arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:*
+              - Effect: Allow
+                Action:
+                  - codedeploy:GetDeploymentConfig
+                Resource:
+                  - Fn::Sub: arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:*
+              - Effect: Allow
+                Action:
+                  - dynamodb:*
+                Resource:
+                  - Fn::Sub: arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub delegate-admin-lambda-lc-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+        - !Sub arn:aws:iam::${AWS::AccountId}:policy/cft-developer-iam-access-policy
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+      PermissionsBoundary: !Sub arn:aws:iam::${AWS::AccountId}:policy/cft-developer-boundary-policy
+      Policies:
+      - PolicyName: logAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:*
+            Resource: arn:aws:logs:*:*:*
+
 
 
 
