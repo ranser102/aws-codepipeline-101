@@ -298,16 +298,8 @@ Resources:
               - "s3:GetBucketAcl"
               - "s3:GetBucketLocation"
             Resource:
-              - !GetAtt ArtifactStoreBucket.Arn
-              - !Sub "${ArtifactStoreBucket.Arn}/*"
-          - Effect: Allow
-            Action:
-              - 'kms:Encrypt'
-              - 'kms:Decrypt'
-              - 'kms:ReEncrypt*'
-              - 'kms:GenerateDataKey*'
-              - 'kms:DescribeKey'
-            Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/gitlab-codepipeline-cmk"
+              - !Sub 'arn:aws:s3:::${SourceCodeBucket}'
+              - !Sub 'arn:aws:s3:::${SourceCodeBucket}/*'
           - Effect: Allow  #For allowing CodeBuild to Access Secrets Manager to retrieve Private SSH key. If a custom KMS key is used, please add the ARN in the Resource section
             Action:
               - 'kms:Encrypt'
