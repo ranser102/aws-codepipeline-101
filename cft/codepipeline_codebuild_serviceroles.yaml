@@ -130,7 +130,7 @@ Resources:
     Type: 'AWS::IAM::Role'
     Properties:
       PermissionsBoundary: !Sub 'arn:aws:iam::${AWS::AccountId}:policy/cft-developer-boundary-policy'
-      RoleName: delegate-admin-codepipeline-role
+      RoleName: delegate-admin-codepipeline-role-lc
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
