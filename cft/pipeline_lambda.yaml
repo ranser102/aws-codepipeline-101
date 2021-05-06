@@ -15,7 +15,10 @@ Resources:
     Type: 'AWS::CodePipeline::Pipeline'
     Properties: 
       Name: my-first-codepipeline
-      RoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/delegate-admin-codepipeline-role' 
+      RoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/delegate-admin-codepipeline-role'
+      ArtifactStore:
+        Type: S3
+        Location: !Sub "arn:aws:s3:::${SourceCodeBucket}"
       Stages:
 
         - Name: MySourceStage
