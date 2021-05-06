@@ -52,5 +52,5 @@ aws s3 cp learning-circle-app.zip s3://"$BUCKET_NAME"/
 
 rm -rf *.zip
 
-#codepipeline-iam
+codepipeline-iam
 
