@@ -75,7 +75,7 @@ Resources:
               Configuration:
                 ActionMode: CHANGE_SET_REPLACE
                 Capabilities: CAPABILITY_IAM
-                TemplatePath: 'MyPipelineBuildArtifact::packaged.yml'
+                TemplatePath: 'MyPipelineBuildArtifact::aws-lambda-101/HelloWorldFunction/packaged.yml'
                 ChangeSetName: learning-circle-changeset
                 StackName: learning-circle-lambda-app
                 RoleArn: 
