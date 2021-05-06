@@ -133,7 +133,7 @@ Resources:
           artifacts:
             files:
             - aws-lambda-101/HelloWorldFunction/target/HelloWorld-1.0.jar
-            - packaged.yml
+            - aws-lambda-101/HelloWorldFunction/packaged.yml
 
 
 ### IAM ###
