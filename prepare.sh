@@ -28,6 +28,9 @@ function createCommonDependencies {
 
 # Run the Central S3 bucket
 createCommonDependencies
+
+echo "Enable versioning for pipeline bucket"
+aws s3api put-bucket-versioning --bucket $BUCKET_NAME --versioning-configuration Status=Enabled
     
 # Zip the custom source lambda for publishing
 zip -q -r9 learning-circle-app.zip aws-lambda-101/
