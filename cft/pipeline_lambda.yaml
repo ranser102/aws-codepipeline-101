@@ -55,14 +55,14 @@ Resources:
               InputArtifacts:
                 - Name: S3SourceArtifact
 
-        - Name: MyApprovalStage
-          Actions:
-            - Name: ApprovalAction
-              ActionTypeId: 
-                Category: Approval
-                Owner: AWS
-                Provider: Manual
-                Version: 1
+        # - Name: MyApprovalStage
+        #   Actions:
+        #     - Name: ApprovalAction
+        #       ActionTypeId: 
+        #         Category: Approval
+        #         Owner: AWS
+        #         Provider: Manual
+        #         Version: 1
   
         - Name: MyDeployStage
           Actions:
@@ -121,20 +121,20 @@ Resources:
               commands:
                 - echo "=======================Start-Build============================="
                 - pwd ; ls -alrt
-                - cd aws-lambda-101/HelloWorldFunction
-                - pwd ; ls -alrt
+                - echo $CODEBUILD_SRC_DIR ; ls -alrt $CODEBUILD_SRC_DIR
+                - cd aws-lambda-101/HelloWorldFunction ; pwd ; ls -alrt
                 - mvn -ntp package
                 - pwd ; ls -alrt; ls -alrt target/
-                - cd ../
-                - pwd ; ls -alrt;
+                - cd ../ ; pwd ; ls -alrt;
                 - sam package --template-file template.yaml --s3-bucket learning-circle-source-code --s3-prefix LearningCircleApp --output-template-file packaged.yml
                 - pwd ; ls -alrt;
+                - cp packaged.yml $CODEBUILD_SRC_DIR
+                - cd ../ ; pwd ; ls -alrt;
                 - echo "=======================End-Build============================="
           artifacts:
             files:
             - aws-lambda-101/HelloWorldFunction/target/HelloWorld-1.0.jar
-            - aws-lambda-101/packaged.yml
-
+            - packaged.yml
 
 
 ### IAM ###
