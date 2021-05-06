@@ -174,7 +174,7 @@ Resources:
                 Action:
                   - s3:PutObject
                 Resource:
-                  - Fn::Sub: arn:aws:s3:::gitlab-custom-source-artifactstore-${AWS::AccountId}/*
+                  - !Sub ${SourceCodeBucket}/*
               - Effect: Allow
                 Action:
                   - lambda:*
