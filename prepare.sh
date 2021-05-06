@@ -5,7 +5,7 @@ ACCOUNT_ID=$(aws sts get-caller-identity)
 echo "ACCOUNT_ID=$ACCOUNT_ID"
 
 # Reading Config File
-. ./setup.config
+. ./env.config
 
 # Check that our AWS environment variables are defined
 [ -n "${BUCKET_NAME}" ] || { echo "bucket variable not defined"; exit 1; }
@@ -29,13 +29,10 @@ function createCommonDependencies {
 # Run the Central S3 bucket
 createCommonDependencies
     
-echo "Enable versioning for pipeline bucket"
-aws s3api put-bucket-versioning --bucket $BUCKET_NAME --versioning-configuration Status=Enabled
-
 # Zip the custom source lambda for publishing
 zip -q -r9 learning-circle-app.zip aws-lambda-101/
 
 # Publish the pipeline prereq objects
 aws s3 cp learning-circle-app.zip s3://"$BUCKET_NAME"/
 
-#rm -rf *.zip
+rm -rf *.zip
