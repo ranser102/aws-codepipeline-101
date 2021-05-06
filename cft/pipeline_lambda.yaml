@@ -28,8 +28,8 @@ Resources:
             Region: us-east-1
             Name: S3SourceAction
             Configuration:
-              S3Bucket: my-bucket-source  ### prereq
-              S3ObjectKey: my-application.zip  ### prereq
+              S3Bucket: learning-circle-source-code  ### Created by prepare.sh
+              S3ObjectKey: learning-circle-app.zip  ### Created by prepare.sh
             InputArtifacts: []
 
           Name: MyBuildStage
