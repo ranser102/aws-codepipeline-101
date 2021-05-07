@@ -50,4 +50,5 @@ Use the following scripts to iterate through the creation and deletion of the re
 - `cleanup.sh` - Delete all resources from previous iteration for a clean start
 - `prepare.sh` - Provision resources needed by the pipeline, such: S3, source-code as zip file, IAM serviceroles
 - `deploy.sh`  - Provision the pipeline stack
+- `code-commit.sh` - Pull code from repository and upload to S3 bucket
 
