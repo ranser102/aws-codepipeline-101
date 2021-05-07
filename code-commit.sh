@@ -2,6 +2,9 @@
 
 git pull
 
+# Reading Config File
+. ./env.config
+
 # Zip the custom source lambda for publishing
 zip -q -r9 learning-circle-app.zip aws-lambda-101/
 
