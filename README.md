@@ -11,6 +11,7 @@ which build and deploy SAM application (runtime: java8, maven) into AWS account
 
 ### Cloudformation
 - https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-reference.html
+- https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-anatomy.html 
 
 ### Codepipeline
 - Intro: https://docs.aws.amazon.com/codepipeline/latest/userguide/welcome.html
@@ -29,6 +30,10 @@ which build and deploy SAM application (runtime: java8, maven) into AWS account
 ### Cloudshell
 - https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html 
 
+## Pipeline flow
+
+![Pipeline flow](pipeline_101.png)
+
 ## Useful commands
 **sam cli:**
 - `sam init ...`
@@ -45,3 +50,4 @@ Use the following scripts to iterate through the creation and deletion of the re
 - `cleanup.sh` - Delete all resources from previous iteration for a clean start
 - `prepare.sh` - Provision resources needed by the pipeline, such: S3, source-code as zip file, IAM serviceroles
 - `deploy.sh`  - Provision the pipeline stack
+
